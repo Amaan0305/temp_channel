@@ -1,11 +1,11 @@
-const instagram = require('./instagram');
-const facebook = require('./facebook');
-const linkedin = require('./linkedin');
-const twitter = require('./twitter');
+const instagramUrl = require('./instagram');
+const facebookUrl = require('./facebook');
+const linkedinUrl = require('./linkedin');
+const twitterUrl = require('./twitter');
 
 module.exports = {
-  instagram,
-  facebook,
-  linkedin,
-  twitter,
+  instagramUrl,
+  facebookUrl,
+  linkedinUrl,
+  twitterUrl,
 };

@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const port = 4000;
+const port = 4001;
 
 let browser;
 let page;
@@ -18,6 +18,9 @@ const viewports = [
 async function initializePuppeteer() {
   browser = await puppeteer.launch({ headless: true });
   page = await browser.newPage();
+  await page.setUserAgent(
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36"
+  )
 }
 
 
@@ -38,7 +41,7 @@ app.post('/screenshot', async (req, res) => {
     for (const viewport of viewports) {
       await page.setViewport(viewport);
       await page.waitForSelector(selector, { timeout: 60000 });
-
+      
       await page.evaluate((sel) => {
         const element = document.querySelector(sel);
         if (element) {

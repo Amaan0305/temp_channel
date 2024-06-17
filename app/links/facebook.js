@@ -1,9 +1,6 @@
-const facebook = [
-    "https://www.instagram.com/mancity/p/C7KF3YqurrN/?hl=en",
-    "https://www.instagram.com/mancity/p/C733UICMzMS/?img_index=1",
-    "https://www.instagram.com/indiancricketteam/p/C714-f0NZZv/",
-    "https://www.instagram.com/indiancricketteam/p/C71sVuDN5TP/?img_index=1",
-    "https://www.instagram.com/dummy_cpt/p/C8MGWR2ttok/",
+const facebookUrl = [
+    "https://www.facebook.com/permalink.php?story_fbid=pfbid02BW13cRB4SopPx5potTsRBzvNrTFv1Qokbp3fwhyBWY4WduCWsdAYGUzv1SGsS2N7l&id=61560963294945",
+    "https://www.facebook.com/permalink.php?story_fbid=pfbid0uSmSSGYpEohmBvtUZZjfMUvbWgX9Z2iw7WE1dTEHYiqxdjFKiEoH2pqUUpSwtodMl&id=61560963294945"
 ];
 
-module.exports = facebook;
+module.exports = facebookUrl;
