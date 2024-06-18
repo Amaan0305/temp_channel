@@ -10,7 +10,7 @@ let browser;
 let page;
 
 const viewports = [
-    { width: 430, height: 932 },   // Mobile
+    // { width: 430, height: 932 },   // Mobile
     { width: 1920, height: 1080 }  // Large Desktop
 ];
 
@@ -23,6 +23,24 @@ async function initializePuppeteer() {
 }
 
 app.use(express.json());
+
+
+async function facebookLoginByPass(page){
+  // Click the close button if it exists
+  await page.evaluate(() => {
+    const closeButton = document.querySelector('div[role=button][aria-label=Close]');
+    if (closeButton) {
+      closeButton.click();
+    }
+  });
+  await page.waitForSelector('div[data-nosnippet]');
+  await page.addStyleTag({ content: `
+      div[data-nosnippet], div[role=banner] {
+        display: none !important;
+      }
+  `});
+}
+
 
 app.post('/screenshot', async (req, res) => {
   const { url, selector, name, directory, channel } = req.body;
@@ -38,6 +56,10 @@ app.post('/screenshot', async (req, res) => {
 
     for (const viewport of viewports) {
       await page.setViewport(viewport);
+
+      if(channel === "facebook"){
+        facebookLoginByPass(page);
+      }
       await page.waitForSelector(selector, { timeout: 60000 });
       
       await page.evaluate((sel) => {
@@ -74,6 +96,7 @@ const startServer = async () => {
   });
 
   await captureScreenshots('reference');
+  console.log("Reference Image generated")
 };
 
 startServer().catch(err => console.error(err));

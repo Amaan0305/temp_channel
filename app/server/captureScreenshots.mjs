@@ -17,10 +17,20 @@ const apiCall = async (channelUrls, channel, selector, directory)  => {
 }
 
 const captureScreenshots = async(directory) => {
-    const channels = ["instagram", "linkedin", "twitter"];
+    const channels = ["instagram", "facebook", "linkedin", "twitter"];
+    let selector;
+
     for (let channel of channels) {
+
+        switch(channel) {
+            case "facebook": selector = "div[role=article]";
+            break;
+
+            default: selector="article"
+        }
+
         const urls = links[`${channel}Url`];
-        await apiCall(urls, channel, "article", directory);
+        await apiCall(urls, channel, selector, directory);
     }
 }
 
