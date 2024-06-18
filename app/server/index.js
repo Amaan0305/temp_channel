@@ -3,7 +3,7 @@ const path = require('path');
 const { PNG } = require('pngjs');
 const pixelmatch = require('pixelmatch');
 
-const { instagramUrl, linkedinUrl, twitterUrl, facebookUrl } = require('../links');
+const { instagramUrl, linkedinUrl, twitterUrl, facebookUrl } = require('../links/index.mjs');
 
 const captureScreenshots = async (channelUrls, channel, selector, directory)  => {
     for (let urlIndex = 0; urlIndex < channel.length; urlIndex++) {
@@ -91,7 +91,6 @@ function compareDirectories(dir1, dir2, outputDir) {
 
 
 async function main() {
-
   const channels = ["instagram", "linkedin", "twitter"];
   
   for (let channel of channels) {
