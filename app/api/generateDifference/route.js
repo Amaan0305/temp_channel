@@ -46,9 +46,9 @@ async function compareImages(img1Path, img2Path, diffPath) {
       const oldImgPath = path.join(diffDirPath, `old-${img1FileName}`);
       const newImgPath = path.join(diffDirPath, `new-${img2FileName}`);
 
-      console.log(`Difference image saved at: ${resultDiffPath}`);
-      console.log(`Old image saved at: ${oldImgPath}`);
-      console.log(`New image saved at: ${newImgPath}`);
+      // console.log(`Difference image saved at: ${resultDiffPath}`);
+      // console.log(`Old image saved at: ${oldImgPath}`);
+      // console.log(`New image saved at: ${newImgPath}`);
 
       await fs.promises.writeFile(resultDiffPath, PNG.sync.write(diff));
       await fs.promises.copyFile(img1Path, oldImgPath);
@@ -75,7 +75,7 @@ async function compareDirectories(dir1, dir2, outputDir) {
       const img2Path = path.join(dir2, files2[i]);
 
       const diffPixels = await compareImages(img1Path, img2Path, outputDir);
-      console.log(`Compared: ${files1[i]} vs ${files2[i]}, Diff pixels: ${diffPixels}`);
+      // console.log(`Compared: ${files1[i]} vs ${files2[i]}, Diff pixels: ${diffPixels}`);
       totalDiffPixels += diffPixels;
     }
 
