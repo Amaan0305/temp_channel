@@ -116,6 +116,6 @@ export const POST = async () => {
         
         return new Response (JSON.stringify("Test complete"), {status: 201})
     } catch (err) {
-        return new Response(JSON.stringify(error), { status: 500 })
+        return new Response(JSON.stringify(err), { status: 500 })
     }
 }

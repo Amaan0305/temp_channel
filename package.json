@@ -11,11 +11,12 @@
     "server": "node app/server/index.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
     "express": "^4.19.2",
     "next": "14.2.4",
     "pixelmatch": "^5.3.0",
     "puppeteer": "^22.11.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "react": "^18",
     "react-dom": "^18"
   },
