@@ -1,7 +1,8 @@
 import express from 'express';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-extra';
 import path from 'path';
 import captureScreenshots from './captureScreenshots.mjs';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 
 const app = express();
 const port = 4001;
@@ -14,6 +15,9 @@ const viewports = [
     { width: 1920, height: 1080 }  // Large Desktop
 ];
 
+// Add stealth plugin and use it with puppeteer-extra
+puppeteer.use(StealthPlugin());
+
 async function initializePuppeteer() {
   browser = await puppeteer.launch({ headless: true });
   page = await browser.newPage();
@@ -23,7 +27,6 @@ async function initializePuppeteer() {
 }
 
 app.use(express.json());
-
 
 async function facebookLoginByPass(page){
   // Click the close button if it exists
@@ -41,7 +44,6 @@ async function facebookLoginByPass(page){
   `});
 }
 
-
 app.post('/screenshot', async (req, res) => {
   const { url, selector, name, directory, channel } = req.body;
 
@@ -58,10 +60,10 @@ app.post('/screenshot', async (req, res) => {
       await page.setViewport(viewport);
 
       if(channel === "facebook"){
-        facebookLoginByPass(page);
+        await facebookLoginByPass(page);
       }
       await page.waitForSelector(selector, { timeout: 60000 });
-      
+
       await page.evaluate((sel) => {
         const element = document.querySelector(sel);
         if (element) {

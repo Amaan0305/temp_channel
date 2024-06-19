@@ -1,7 +1,9 @@
+import captureScreenshots from "@/app/server/captureScreenshots.mjs";
 import fs from 'fs';
 import path from 'path';
 import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
+import getImagePaths from "@/app/server/getImagePaths";
 
 // Function to read image files from a directory
 async function readImageFiles(directory) {
@@ -28,13 +30,13 @@ async function compareImages(img1Path, img2Path, diffPath) {
       diff.data,
       width,
       height,
-      { threshold: 0.1 }
+      { threshold: 0.3 }
     );
 
     if (numDiffPixels > 0) {
       const img1FileName = path.basename(img1Path);
       const img2FileName = path.basename(img2Path);
-      const diffFileName = `diff-${img1FileName}`;
+      const diffFileName = `${img1FileName}`;
       const diffDirName = path.basename(diffFileName, path.extname(diffFileName));
       const diffDirPath = path.join(diffPath, diffDirName);
 
@@ -87,8 +89,16 @@ async function compareDirectories(dir1, dir2, outputDir) {
   }
 }
 
+
 export const POST = async () => {
     try {
+        await captureScreenshots("new");
+
+        // Take screenshot of current state of urls
+        console.log("Screenshots generated");
+
+
+        // Compare the directories
         const channels = ["instagram", "linkedin", "twitter"];
 
         for (let channel of channels) {
@@ -98,10 +108,14 @@ export const POST = async () => {
         
             await compareDirectories(directory1, directory2, outputDirectory);
         }
-
-        return new Response(JSON.stringify("Success"), { status: 200});
-
+        
+        // Store the image paths in an object
+        const publicDir = path.join(process.cwd(), 'public', 'results');
+        const basePath = '/results';
+        const imagePaths = getImagePaths(publicDir, basePath);
+        
+        return new Response (JSON.stringify("Test complete"), {status: 201})
     } catch (err) {
-        return new Response(JSON.stringify(error), { status: 500 })
+        return new Response(JSON.stringify(err), { status: 500 })
     }
 }

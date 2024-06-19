@@ -1,39 +1,43 @@
 "use client"
-
-const generateScreenshots = async () => {
-  try{
-    const response = await fetch("/api/generateScreenshots", {
-      method: "POST",
-      headers: { "Content-Type" : "application/json"},
-    })
-    console.log(response);
-  } catch (err) {
-    console.log(err);
-  }
-}
-
-const generateDifference = async () => {
-  try{
-    const response = await fetch("/api/generateDifference", {
-      method: "POST",
-      headers: { "Content-Type" : "application/json"},
-    })
-    console.log(response);
-  } catch (err) {
-    console.log(err);
-  }
-}
+import ImageGallery from "./components/ImageGallery";
+import imagePaths from "../public/results/imagePaths.json";
+import { useState } from "react";
+import Loader from "./components/loader";
 
 export default function Home() {
+  const [loading, setLoading] = useState(false); 
+
+  const runTest = async () => {
+    try{
+      setLoading(true)
+      const response = await fetch("/api/runTest", {
+        method: "POST",
+        headers: { "Content-Type" : "application/json"},
+      })
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setLoading(false)
+    }
+  }
+  
   return (
-    <div>
-      <h1>Difference Images</h1>
+    <div className="text-align:center">
+      <h1 className="head-text">Channel Preview Testing</h1>
 
-      <button onClick={(e) => {generateScreenshots()}}>Generate screenshots</button>
+      {loading ? (
+        <Loader type="TailSpin" color="#00BFFF" height={50} width={50} />
+      ) : (
+        <button
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 m-2 rounded"
+          onClick={(e) => runTest()}
+          disabled={loading} // Disable button when loading
+        >
+          Run Test
+        </button>
+      )}
 
-      <br/>
-
-      <button onClick={(e) => {generateDifference()}}> Generate difference </button>
+      <ImageGallery imagePaths={imagePaths}/>
 
     </div>
   );
