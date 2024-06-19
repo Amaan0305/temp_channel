@@ -1,20 +1,10 @@
 "use client"
+import ImageGallery from "./components/ImageGallery";
+import imagePaths from "../public/results/imagePaths.json";
 
-const generateScreenshots = async () => {
+const runTest = async () => {
   try{
-    const response = await fetch("/api/generateScreenshots", {
-      method: "POST",
-      headers: { "Content-Type" : "application/json"},
-    })
-    console.log(response);
-  } catch (err) {
-    console.log(err);
-  }
-}
-
-const generateDifference = async () => {
-  try{
-    const response = await fetch("/api/generateDifference", {
+    const response = await fetch("/api/runTest", {
       method: "POST",
       headers: { "Content-Type" : "application/json"},
     })
@@ -27,13 +17,11 @@ const generateDifference = async () => {
 export default function Home() {
   return (
     <div>
-      <h1>Difference Images</h1>
+      <h1 className="m-4">Channel Preview Testing</h1>
 
-      <button onClick={(e) => {generateScreenshots()}}>Generate screenshots</button>
+      <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 m-2 rounded" onClick={(e) => {runTest()}}> Run Test </button>
 
-      <br/>
-
-      <button onClick={(e) => {generateDifference()}}> Generate difference </button>
+      <ImageGallery imagePaths={imagePaths}/>
 
     </div>
   );

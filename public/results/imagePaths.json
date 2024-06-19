@@ -1,0 +1,23 @@
+{
+  "facebook": {},
+  "instagram": {
+    "url_2_1080x1920": [
+      "/results/instagram/url_2_1080x1920/new-url_2_1080x1920.png",
+      "/results/instagram/url_2_1080x1920/old-url_2_1080x1920.png",
+      "/results/instagram/url_2_1080x1920/url_2_1080x1920.png"
+    ],
+    "url_3_1080x1920": [
+      "/results/instagram/url_3_1080x1920/new-url_3_1080x1920.png",
+      "/results/instagram/url_3_1080x1920/old-url_3_1080x1920.png",
+      "/results/instagram/url_3_1080x1920/url_3_1080x1920.png"
+    ]
+  },
+  "linkedin": {},
+  "twitter": {
+    "url_3_1080x1920": [
+      "/results/twitter/url_3_1080x1920/new-url_3_1080x1920.png",
+      "/results/twitter/url_3_1080x1920/old-url_3_1080x1920.png",
+      "/results/twitter/url_3_1080x1920/url_3_1080x1920.png"
+    ]
+  }
+}
