@@ -1,8 +1,11 @@
 "use client"
+// "./components/"
 import ImageGallery from "./components/ImageGallery";
 import imagePaths from "../public/results/imagePaths.json";
 import { useState } from "react";
 import Loader from "./components/loader";
+import Link from "next/link";
+
 
 export default function Home() {
   const [loading, setLoading] = useState(false); 
@@ -20,7 +23,6 @@ export default function Home() {
       setLoading(false)
     }
   }
-  
   return (
     <div className="text-align:center">
       <h1 className="head-text">Channel Preview Testing</h1>
@@ -38,7 +40,14 @@ export default function Home() {
       )}
 
       <ImageGallery imagePaths={imagePaths}/>
-
+      <Link href="./manage">
+        <button
+          className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 m-2 rounded"
+        >
+          Go to Admin Page
+        </button>
+      </Link>
     </div>
   );
 }
+

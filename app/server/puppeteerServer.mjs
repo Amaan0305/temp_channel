@@ -75,6 +75,7 @@ app.post('/screenshot', async (req, res) => {
 
       if (element) {
         const screenshotPath = `./public/screenshots/${directory}/${channel}/${name}_${viewport.height}x${viewport.width}.png`;
+        console.log(screenshotPath);
         await element.screenshot({ path: screenshotPath });
         screenshots.push({ viewport: `${viewport.width}x${viewport.height}`, path: screenshotPath });
       } else {
@@ -108,3 +109,4 @@ process.on('exit', async () => {
     await browser.close();
   }
 });
+
