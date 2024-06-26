@@ -1,15 +1,34 @@
 "use client"
 // "./components/"
 import ImageGallery from "./components/ImageGallery";
-import imagePaths from "../public/results/imagePaths.json";
-import { useState } from "react";
+// import imagePaths from "../public/results/imagePaths.json";
+// import comparison_results from "../public/results/comparison_results.json"
+import { useEffect, useState } from "react";
 import Loader from "./components/loader";
 import Link from "next/link";
 
 
 export default function Home() {
   const [loading, setLoading] = useState(false); 
+  const [imagePaths, setImagePaths] = useState([]);
+  useEffect(() => {
+    const fetchImagePaths = async () => {
+      try {
+        const response = await fetch("/api/getImagePaths", {
+          method: "GET",
+          headers: { "Content-Type" : "application/json"},
+        });
+        const data = await response.json();
+        // alert(data);
+        // console.log(data);
+        setImagePaths(data);
+      } catch (error) {
+        console.error("Failed to fetch image paths:", error);
+      }
+    };
 
+    fetchImagePaths();
+  }, []);
   const runTest = async () => {
     try{
       setLoading(true)
@@ -38,8 +57,6 @@ export default function Home() {
           Run Test
         </button>
       )}
-
-      <ImageGallery imagePaths={imagePaths}/>
       <Link href="./manage">
         <button
           className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 m-2 rounded"
@@ -47,6 +64,8 @@ export default function Home() {
           Go to Admin Page
         </button>
       </Link>
+      {/* alert(imagePaths); */}
+      <ImageGallery imagePaths={imagePaths}/>
     </div>
   );
 }

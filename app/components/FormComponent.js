@@ -6,7 +6,7 @@ const FormComponent = ({ channels }) => {
   const [inputScenario, setInputScenario] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -24,9 +24,9 @@ const FormComponent = ({ channels }) => {
           scenario: inputScenario,
         }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         if (data.message === 'URL already exists') {
           setError('This URL already exists in the selected channel.');
@@ -38,7 +38,6 @@ const FormComponent = ({ channels }) => {
 
       console.log('Response:', data);
       // Optionally, you can update your UI or state based on the response data
-
     } catch (error) {
       console.error('Error adding URL:', error);
       if (!error.message.includes('URL already exists')) {
@@ -50,7 +49,7 @@ const FormComponent = ({ channels }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 mx-auto max-w-lg">
       <div>
         <label htmlFor="dropdown1" className="block text-sm font-medium text-gray-700">
           Select Channel
@@ -66,7 +65,7 @@ const FormComponent = ({ channels }) => {
           </option>
           {channels.map((channel) => (
             <option key={channel} value={channel}>
-              {channel}
+              {channel.charAt(0).toUpperCase() + channel.slice(1)}
             </option>
           ))}
         </select>
@@ -105,7 +104,9 @@ const FormComponent = ({ channels }) => {
       <div>
         <button
           type="submit"
-          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+            loading ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
           disabled={loading}
         >
           {loading ? 'Submitting...' : 'Submit'}

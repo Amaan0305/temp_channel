@@ -4,8 +4,8 @@ import path from 'path';
 const getImagePaths = (dirPath, basePath) => {
   const result = {};
 
-  // Read existing imagePaths.json if it exists
-  const jsonPath = path.join(dirPath, 'imagePaths.json');
+  // Read existing comparison_results.json if it exists
+  const jsonPath = path.join(dirPath, 'comparison_results.json');
   let existingData = {};
   if (fs.existsSync(jsonPath)) {
     try {

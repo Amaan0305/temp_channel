@@ -1,26 +1,70 @@
 import captureScreenshots from "@/app/server/captureScreenshots.mjs";
-import fs from 'fs';
-import path from 'path';
 import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
-import getImagePaths from "@/app/server/getImagePaths";
+import cloudinary from "@/app/lib/cloudinary";
+import axios from 'axios';
+import stream from 'stream'; 
+import fs from 'fs';
+import path from 'path';
+import SocialMedia from "@/app/lib/models/channels.mjs";
+import ScreenshotReference from "@/app/lib/models/ScreenshotReference.mjs";
+import ScreenshotTest from "@/app/lib/models/ScreenshotTest.mjs";
+import connectToDatabase from "@/app/lib/mongodb.mjs";
+import Result from "@/app/lib/models/resultSchema.mjs";
+// import { data } from "autoprefixer";
 
-// Function to read image files from a directory
-async function readImageFiles(directory) {
+// Function to fetch image from Cloudinary and return as buffer
+async function fetchImageBufferFromCloudinary(url) {
+  const response = await axios.get(url, { responseType: 'arraybuffer' });
+  return Buffer.from(response.data, 'binary');
+}
+
+// Function to upload image buffer to Cloudinary
+async function uploadImageBufferToCloudinary(buffer, cloudPath, overwrite = false) {
+  // If overwrite is false, check if the image already exists
+  if (!overwrite) {
+    const existingUrl = await imageExistsOnCloudinary(cloudPath);
+    if (existingUrl) {
+      return existingUrl;
+    }
+  }
+
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { public_id: cloudPath, resource_type: 'image', overwrite: true },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result.secure_url);
+        }
+      }
+    );
+
+    const bufferStream = new stream.PassThrough();
+    bufferStream.end(buffer);
+    bufferStream.pipe(uploadStream);
+  });
+}
+
+// Function to check if an image exists on Cloudinary
+async function imageExistsOnCloudinary(public_id) {
   try {
-    const files = await fs.promises.readdir(directory);
-    return files.filter(file => path.extname(file).toLowerCase() === '.png');
+    const result = await cloudinary.api.resource(public_id, { resource_type: 'image' });
+    return result.secure_url;
   } catch (error) {
-    console.error(`Error reading directory ${directory}:`, error);
-    return [];
+    if (error.http_code === 404) {
+      return null;
+    }
+    throw error;
   }
 }
 
-// Function to compare two images and generate a diff image
-async function compareImages(img1Path, img2Path, diffPath) {
+// Function to compare two image buffers and generate a diff image, then upload to Cloudinary
+async function compareImagesAndUpload(img1Buffer, img2Buffer, diffCloudPath, overwrite = false) {
   try {
-    const img1Data = PNG.sync.read(await fs.promises.readFile(img1Path));
-    const img2Data = PNG.sync.read(await fs.promises.readFile(img2Path));
+    const img1Data = PNG.sync.read(img1Buffer);
+    const img2Data = PNG.sync.read(img2Buffer);
     const { width, height } = img1Data;
     const diff = new PNG({ width, height });
 
@@ -34,89 +78,122 @@ async function compareImages(img1Path, img2Path, diffPath) {
     );
 
     if (numDiffPixels > 0) {
-      const img1FileName = path.basename(img1Path);
-      const img2FileName = path.basename(img2Path);
-      const diffFileName = `${img1FileName}`;
-      const diffDirName = path.basename(diffFileName, path.extname(diffFileName));
-      const diffDirPath = path.join(diffPath, diffDirName);
+      const diffBuffer = PNG.sync.write(diff);
+      const diffUrl = await uploadImageBufferToCloudinary(diffBuffer, diffCloudPath, overwrite);
+      console.log(`Uploaded diff image to Cloudinary: ${diffUrl}`);
 
-      if (!fs.existsSync(diffDirPath)) {
-        fs.mkdirSync(diffDirPath, { recursive: true });
-      }
-
-      const resultDiffPath = path.join(diffDirPath, diffFileName);
-      const oldImgPath = path.join(diffDirPath, `old-${img1FileName}`);
-      const newImgPath = path.join(diffDirPath, `new-${img2FileName}`);
-
-      // console.log(`Difference image saved at: ${resultDiffPath}`);
-      // console.log(`Old image saved at: ${oldImgPath}`);
-      // console.log(`New image saved at: ${newImgPath}`);
-
-      await fs.promises.writeFile(resultDiffPath, PNG.sync.write(diff));
-      await fs.promises.copyFile(img1Path, oldImgPath);
-      await fs.promises.copyFile(img2Path, newImgPath);
+      return { numDiffPixels, diffUrl };
+    } else {
+      console.log(`No difference found between images`);
+      return { numDiffPixels: 0, diffUrl: null };
     }
-
-    return numDiffPixels;
   } catch (error) {
-    console.error(`Error comparing images ${img1Path} and ${img2Path}:`, error);
-    return 0;
+    console.error(`Error comparing or uploading images:`, error);
+    return { numDiffPixels: 0, diffUrl: null };
   }
 }
 
-// Function to compare images in two directories
-async function compareDirectories(dir1, dir2, outputDir) {
+// Function to read URLs from JSON file
+function readUrlsFromFile(filePath) {
+  const fileData = fs.readFileSync(filePath, 'utf8');
+  return JSON.parse(fileData);
+}
+
+// Function to compare images in two sets of Cloudinary URLs
+async function compareCloudinaryImages(referenceData, newData, channel, overwrite = false) {
   try {
-    const files1 = await readImageFiles(dir1);
-    const files2 = await readImageFiles(dir2);
-
     let totalDiffPixels = 0;
+    const results = {};
+    for (let i = 0; i < Math.min(referenceData.length, newData.length); i++) {
+      console.log(referenceData[i].url);
+      const img1Buffer = await fetchImageBufferFromCloudinary(referenceData[i].url);
+      const img2Buffer = await fetchImageBufferFromCloudinary(newData[i].url);
 
-    for (let i = 0; i < Math.min(files1.length, files2.length); i++) {
-      const img1Path = path.join(dir1, files1[i]);
-      const img2Path = path.join(dir2, files2[i]);
+      const diffCloudPath = `diffs/${channel}/diff_${i}`;
+      const { numDiffPixels, diffUrl } = await compareImagesAndUpload(img1Buffer, img2Buffer, diffCloudPath, overwrite);
 
-      const diffPixels = await compareImages(img1Path, img2Path, outputDir);
-      // console.log(`Compared: ${files1[i]} vs ${files2[i]}, Diff pixels: ${diffPixels}`);
-      totalDiffPixels += diffPixels;
+      totalDiffPixels += numDiffPixels;
+
+      if (numDiffPixels > 0) {
+        results[referenceData[i].scenario] = [
+          referenceData[i].url,
+          newData[i].url,
+          diffUrl
+        ];
+      }
     }
-
+    
     console.log(`Total difference pixels: ${totalDiffPixels}`);
-    return totalDiffPixels;
+    return results;
   } catch (error) {
-    console.error('Error comparing directories:', error);
-    return 0;
+    console.error('Error comparing Cloudinary images:', error);
+    return {};
   }
 }
-
 
 export const POST = async () => {
-    try {
-        await captureScreenshots("new");
+  try {
+    // Fetch all unique channel names
+    connectToDatabase();
+    const channels = await SocialMedia.distinct('channelName');
 
-        // Take screenshot of current state of urls
-        console.log("Screenshots generated");
+    // const newScreenshots = await captureScreenshots("new");
+    console.log("Screenshots generated");
 
-
-        // Compare the directories
-        const channels = ["instagram", "linkedin", "twitter"];
-
-        for (let channel of channels) {
-            const directory1 = `public/screenshots/reference/${channel}`;
-            const directory2 = `public/screenshots/new/${channel}`;
-            const outputDirectory = `public/results/${channel}`;
-        
-            await compareDirectories(directory1, directory2, outputDirectory);
-        }
-        
-        // Store the image paths in an object
-        const publicDir = path.join(process.cwd(), 'public', 'results');
-        const basePath = '/results';
-        const imagePaths = getImagePaths(publicDir, basePath);
-        
-        return new Response (JSON.stringify("Test complete"), {status: 201})
-    } catch (err) {
-        return new Response(JSON.stringify(err), { status: 500 })
+    const outputDir = path.join(process.cwd(), 'public', 'results');
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
     }
+
+    const comparisonResults = {};
+    // console.log(channels);
+    for (let channel of channels) {
+      const referenceScreenshots = await ScreenshotReference.find({ channel });
+      const testScreenshots = await ScreenshotTest.find({ channel });
+
+      // Prepare data for comparison (assuming you have URLs stored in 'url' field)
+      const referenceData = referenceScreenshots.map(screenshot => ({ url: screenshot.url, scenario: screenshot.scenario }));
+      const newData = testScreenshots.map(screenshot => ({ url: screenshot.url, scenario: screenshot.scenario }));
+
+      const results = await compareCloudinaryImages(referenceData, newData, channel,true);
+      comparisonResults[channel] = results;
+    }
+    // Prepare data in the desired format for MongoDB
+    const dataToSave = Object.keys(comparisonResults).map(platformName => ({
+      platformName,
+      images: Object.keys(comparisonResults[platformName]).map(scenario => ({
+        imageName: scenario.trim(), // Assuming scenario is the imageName
+        referenceUrl: comparisonResults[platformName][scenario][0], // Reference URL
+        testUrl: comparisonResults[platformName][scenario][1], // Test URL
+        diffUrl: comparisonResults[platformName][scenario][2] // Diff URL
+      }))
+    }));
+    try {
+      await Result.deleteMany({});
+      // Save to MongoDB
+      const result = new Result({
+        platforms: dataToSave
+      });
+
+      // Save the document to MongoDB
+      const savedResult = await result.save();
+      console.log("Data saved successfully to MongoDB");
+    } catch (error) {
+      console.error("Error saving data to MongoDB:", error);
+      // Handle error appropriately, e.g., log, throw, or return an error response
+    }
+    
+
+    const jsonFilePath = path.join(outputDir, 'comparison_results.json');
+    fs.writeFileSync(jsonFilePath, JSON.stringify(comparisonResults, null, 2));
+    console.log(`Stored comparison results in JSON file: ${jsonFilePath}`);
+
+    console.log("Image comparison and upload to Cloudinary complete");
+
+    return new Response(JSON.stringify({ message: "Test complete" }), { status: 201 });
+  } catch (err) {
+    console.error('Error in POST request:', err);
+    return new Response(JSON.stringify(err), { status: 500 });
+  }
 }
 

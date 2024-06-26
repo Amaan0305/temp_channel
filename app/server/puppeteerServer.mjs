@@ -3,6 +3,17 @@ import puppeteer from 'puppeteer-extra';
 import path from 'path';
 import captureScreenshots from './captureScreenshots.mjs';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import cloudinary from '../lib/cloudinary.mjs';
+import { PassThrough } from 'stream';
+import fs from 'fs';
+import connectToDatabase from '../lib/mongodb.mjs';
+import SocialMedia from '../lib/models/channels.mjs';
+import ScreenshotReference from '../lib/models/ScreenshotReference.mjs';
+import ScreenshotTest from '../lib/models/ScreenshotTest.mjs';
+import * as links from '../links/index.mjs';
+import addSocialMediaChannel from './addChannel.mjs';
+
+// import { data } from 'autoprefixer';
 
 const app = express();
 const port = 4001;
@@ -11,7 +22,6 @@ let browser;
 let page;
 
 const viewports = [
-    // { width: 430, height: 932 },   // Mobile
     { width: 1920, height: 1080 }  // Large Desktop
 ];
 
@@ -28,8 +38,7 @@ async function initializePuppeteer() {
 
 app.use(express.json());
 
-async function facebookLoginByPass(page){
-  // Click the close button if it exists
+async function facebookLoginByPass(page) {
   await page.evaluate(() => {
     const closeButton = document.querySelector('div[role=button][aria-label=Close]');
     if (closeButton) {
@@ -37,20 +46,39 @@ async function facebookLoginByPass(page){
     }
   });
   await page.waitForSelector('div[data-nosnippet]');
-  await page.addStyleTag({ content: `
+  await page.addStyleTag({
+    content: `
       div[data-nosnippet], div[role=banner] {
         display: none !important;
       }
   `});
 }
 
-app.post('/screenshot', async (req, res) => {
-  const { url, selector, name, directory, channel } = req.body;
+function saveUrls(urls, directory, channel) {
+  const baseFilename = path.join('public/screenshots', directory, `${channel}.json`);
+  let existingData = [];
 
-  if (!url || !selector) {
-    return res.status(400).send('URL and selector are required');
+  if (fs.existsSync(baseFilename)) {
+    const rawData = fs.readFileSync(baseFilename);
+    existingData = JSON.parse(rawData);
   }
 
+  existingData.push(...urls);
+
+  // Ensure the directory exists
+  fs.mkdirSync(path.dirname(baseFilename), { recursive: true });
+
+  fs.writeFileSync(baseFilename, JSON.stringify(existingData, null, 2));
+}
+
+app.post('/screenshot', async (req, res) => {
+  const { link  , selector, name, directory, channel } = req.body;
+
+  if (!link || !selector) {
+    return res.status(400).send('URL and selector are required');
+  }
+  const url = link.url;
+  const scenario = link.scenario;
   try {
     await page.goto(url, { waitUntil: 'networkidle2' });
 
@@ -59,7 +87,7 @@ app.post('/screenshot', async (req, res) => {
     for (const viewport of viewports) {
       await page.setViewport(viewport);
 
-      if(channel === "facebook"){
+      if (channel === "facebook") {
         await facebookLoginByPass(page);
       }
       await page.waitForSelector(selector, { timeout: 60000 });
@@ -74,16 +102,49 @@ app.post('/screenshot', async (req, res) => {
       const element = await page.$(selector);
 
       if (element) {
-        const screenshotPath = `./public/screenshots/${directory}/${channel}/${name}_${viewport.height}x${viewport.width}.png`;
-        console.log(screenshotPath);
-        await element.screenshot({ path: screenshotPath });
-        screenshots.push({ viewport: `${viewport.width}x${viewport.height}`, path: screenshotPath });
+        const screenshotBuffer = await element.screenshot({ encoding: 'binary' });
+        const screenshotName = `${directory}/${channel}/${name}_${viewport.height}x${viewport.width}`;
+
+        const uploadResult = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { resource_type: 'image', public_id: screenshotName, overwrite: true },
+            (error, result) => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve(result);
+              }
+            }
+          );
+
+          const bufferStream = new PassThrough();
+          bufferStream.end(screenshotBuffer);
+          bufferStream.pipe(stream);
+        });
+        
+        console.log(screenshotName);
+        const screenshotData = {
+          viewport: `${viewport.width}x${viewport.height}`,
+          scenario,
+          url: uploadResult.secure_url,
+          channel
+        };
+        if(directory==='reference'){
+          const newScreenshot = new ScreenshotReference(screenshotData);
+          await newScreenshot.save();
+        }
+        else{
+          const newScreenshot = new ScreenshotTest(screenshotData);
+          await newScreenshot.save();
+        }
       } else {
         return res.status(404).send('Selector not found');
       }
     }
 
-    res.status(200).send("The screenshots have been generated");
+    // saveUrls(screenshots, directory, channel);
+
+    res.status(200).send({ message: "The screenshots have been generated", screenshots });
   } catch (error) {
     console.error(error);
     res.status(500).send('Error capturing screenshot');
@@ -92,14 +153,68 @@ app.post('/screenshot', async (req, res) => {
 
 app.use('/screenshots', express.static(path.join(new URL(import.meta.url).pathname, 'screenshots')));
 
-const startServer = async () => {
-  await initializePuppeteer();
-  app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
-  });
+app.post('/add', async (req, res) => {
+  try {
+      const { channelName, divSelector ,data } = req.body;
+      console.log(channelName);
+      // Validate request body
+      if (!channelName || !data || !divSelector || !Array.isArray(data) || data.length === 0) {
+          return res.status(400).json({ error: 'Invalid request body' });
+      }
+      // Check if channelName already exists
+      const existingChannel = await SocialMedia.findOne({ channelName });
+      if (existingChannel) {
+          return res.status(400).json({ error: 'Channel already exists' });
+      }
+      // Create new instance of SocialMedia
+      const socialMediaData = new SocialMedia({
+          channelName,
+          divSelector,
+          data
+      });
 
-  await captureScreenshots('reference');
-  console.log("Reference Image generated")
+      // Save to database
+      const savedData = await socialMediaData.save();
+
+      res.status(201).json(savedData);
+  } catch (error) {
+      console.error('Error adding social media data:', error);
+      res.status(500).json({ error: 'Failed to add social media data' });
+  }
+});
+
+const startServer = async () => {
+  try {
+    await initializePuppeteer();
+    await connectToDatabase();  // Connect to MongoDB
+
+    app.listen(port, () => {
+      console.log(`Server is running on http://localhost:${port}`);
+    });
+
+    // const channels = ["instagram", "facebook", "linkedin", "twitter"];
+    // let selector;
+
+    // for (let channel of channels) {
+
+    //     switch(channel) {
+    //         case "facebook": selector = "div[role=main]";
+    //         break;
+
+    //         default: selector="article"
+    //     }
+
+    //     const data = links[`${channel}Url`];
+    //     await addSocialMediaChannel(channel,selector,data);
+    // }
+
+    await captureScreenshots('reference');
+    
+    console.log("Reference Image generated");
+  } catch (err) {
+    console.error(err);
+  }
+
 };
 
 startServer().catch(err => console.error(err));
@@ -109,4 +224,3 @@ process.on('exit', async () => {
     await browser.close();
   }
 });
-

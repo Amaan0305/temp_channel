@@ -1,12 +1,16 @@
-import * as links from '../links/index.mjs';
+import fs from 'fs';
+import SocialMedia from '../lib/models/channels.mjs';
+import ScreenshotTest from '../lib/models/ScreenshotTest.mjs';
+import ScreenshotReference from '../lib/models/ScreenshotReference.mjs';
+import connectToDatabase from '../lib/mongodb.mjs';
 
-const apiCall = async (channelUrls, channel, selector, directory)  => {
-    for (let urlIndex = 0; urlIndex < channel.length; urlIndex++) {
+const apiCall = async (channelData, channel, selector, directory)  => {
+    for (let urlIndex = 0; urlIndex < channelData.length; urlIndex++) {
         const response = await fetch("http://localhost:4001/screenshot", {
             method: "POST",
             headers: { "Content-Type" : "application/json"},
             body: JSON.stringify({
-                url: channelUrls[urlIndex],
+                link: channelData[urlIndex],
                 selector,
                 name: `url_${urlIndex}`,
                 directory,
@@ -15,23 +19,28 @@ const apiCall = async (channelUrls, channel, selector, directory)  => {
         })
     }
 }
-
-const captureScreenshots = async(directory) => {
-    const channels = ["instagram", "facebook", "linkedin", "twitter"];
-    let selector;
+const captureScreenshots = async (directory) => {
+    // Fetch all unique channel names
+    connectToDatabase();
+    const channels = await SocialMedia.distinct('channelName');
+    if(directory==='reference') await ScreenshotReference.deleteMany({});
+    else await ScreenshotTest.deleteMany({});
 
     for (let channel of channels) {
-
-        switch(channel) {
-            case "facebook": selector = "div[role=article]";
-            break;
-
-            default: selector="article"
+        // Fetch data for the current channel from MongoDB
+        const channelData = await SocialMedia.findOne({ channelName: channel });
+        if (!channelData || !channelData.data) {
+            console.error(`No data found for channel: ${channel}`);
+            continue;
         }
+        const { divSelector, data } = channelData;
 
-        const urls = links[`${channel}Url`];
-        await apiCall(urls, channel, selector, directory);
+        // Clear existing file content
+        const baseFilename = `public/screenshots/${directory}/${channel}.json`;
+        fs.writeFileSync(baseFilename, JSON.stringify([], null, 2));
+        await apiCall(data, channel, divSelector, directory);
     }
-}
+};
+
 
 export default captureScreenshots;

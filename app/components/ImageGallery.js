@@ -18,7 +18,8 @@ const fixed = async(channel, name) => {
 
 const ImageGallery = ({ imagePaths }) => {
   const labels = ["new", "old", "difference"];
-
+  console.log(imagePaths);
+  // alert(imagePaths);
   return (
     <div className='m-4'>
       {Object.keys(imagePaths).map((platform, index) => (
