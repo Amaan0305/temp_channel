@@ -1,25 +1,33 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
-const fixed = async(channel, name) => {
+const fixed = async(channel, name,idx) => {
+  console.log(channel);
+  console.log(name);
+  console.log(idx);
   try {
     const response = await fetch("/api/fixed", {
       method: "POST",
       headers: { "Content-Type" : "application/json"},
       body: JSON.stringify({
         channel: `${channel}`, 
-        name: `${name}`
+        name: `${name}`,
+        idx :`${idx}`
       })
     })
-    console.log(response)
+    console.log(response);
   } catch (err) {
-    console.log(err)
+    console.log(err);
   }
 }
 
 const ImageGallery = ({ imagePaths }) => {
   const labels = ["new", "old", "difference"];
-  console.log(imagePaths);
+  // console.log(imagePaths);
   // alert(imagePaths);
+  useEffect(() => {
+    console.log('Image paths updated:', imagePaths);
+  }, [imagePaths]);
+
   return (
     <div className='m-4'>
       {Object.keys(imagePaths).map((platform, index) => (
@@ -29,7 +37,7 @@ const ImageGallery = ({ imagePaths }) => {
             <div key={idx} style={{ marginBottom: '10px' }}>
               <h3>
                 {folder}
-                <button className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 m-2 rounded' onClick={() => {fixed(platform, folder)}}>Fixed</button>
+                <button className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 m-2 rounded' onClick={() => {fixed(platform,imagePaths[platform][folder][0],idx)}}>Fixed</button>
               </h3>
               <div style={{ display: 'flex', flexWrap: 'wrap' ,justifyContent : "space-around"}}>
                 {imagePaths[platform][folder].map((imagePath, imgIdx) => (

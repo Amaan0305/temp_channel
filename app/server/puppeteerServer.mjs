@@ -54,23 +54,6 @@ async function facebookLoginByPass(page) {
   `});
 }
 
-function saveUrls(urls, directory, channel) {
-  const baseFilename = path.join('public/screenshots', directory, `${channel}.json`);
-  let existingData = [];
-
-  if (fs.existsSync(baseFilename)) {
-    const rawData = fs.readFileSync(baseFilename);
-    existingData = JSON.parse(rawData);
-  }
-
-  existingData.push(...urls);
-
-  // Ensure the directory exists
-  fs.mkdirSync(path.dirname(baseFilename), { recursive: true });
-
-  fs.writeFileSync(baseFilename, JSON.stringify(existingData, null, 2));
-}
-
 app.post('/screenshot', async (req, res) => {
   const { link  , selector, name, directory, channel } = req.body;
 
@@ -155,7 +138,7 @@ app.use('/screenshots', express.static(path.join(new URL(import.meta.url).pathna
 
 app.post('/add', async (req, res) => {
   try {
-      const { channelName, divSelector ,data } = req.body;
+      const { channelName, divSelector , data , code } = req.body;
       console.log(channelName);
       // Validate request body
       if (!channelName || !data || !divSelector || !Array.isArray(data) || data.length === 0) {
@@ -170,7 +153,8 @@ app.post('/add', async (req, res) => {
       const socialMediaData = new SocialMedia({
           channelName,
           divSelector,
-          data
+          data,
+          code
       });
 
       // Save to database
@@ -183,6 +167,46 @@ app.post('/add', async (req, res) => {
   }
 });
 
+// Endpoint to save user-provided code for a channel
+app.post('/save-code', async (req, res) => {
+  const { channelName, code } = req.body;
+
+  if (!channelName || !code) {
+    return res.status(400).json({ message: 'Channel name and code are required' });
+  }
+
+  try {
+    const channel = await SocialMedia.findOne({ channelName });
+
+    if (!channel) {
+      return res.status(404).json({ message: 'Channel not found' });
+    }
+
+    channel.code = code;
+    await channel.save();
+    res.status(200).json({ message: 'Code saved successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error saving code', error });
+  }
+});
+
+// Endpoint to fetch user-provided code for a channel
+app.get('/fetch-code/:channelName', async (req, res) => {
+  const { channelName } = req.params;
+
+  try {
+    const channel = await SocialMedia.findOne({ channelName });
+
+    if (!channel) {
+      return res.status(404).json({ message: 'Channel not found' });
+    }
+
+    res.status(200).json({ code: channel.code });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching code', error });
+  }
+});
+
 const startServer = async () => {
   try {
     await initializePuppeteer();
@@ -192,23 +216,24 @@ const startServer = async () => {
       console.log(`Server is running on http://localhost:${port}`);
     });
 
-    // const channels = ["instagram", "facebook", "linkedin", "twitter"];
-    // let selector;
+    const channels = ["instagram", "facebook", "twitter"];
+    let selector;
 
-    // for (let channel of channels) {
+    for (let channel of channels) {
 
-    //     switch(channel) {
-    //         case "facebook": selector = "div[role=main]";
-    //         break;
+        switch(channel) {
+            case "facebook": selector = "div[role=main]";
+            break;
 
-    //         default: selector="article"
-    //     }
+            default: selector="article"
+        }
 
-    //     const data = links[`${channel}Url`];
-    //     await addSocialMediaChannel(channel,selector,data);
-    // }
+        const data = links[`${channel}Url`];
+        let code = '';
+        await addSocialMediaChannel(channel,selector,data,code);
+    }
 
-    await captureScreenshots('reference');
+    // await captureScreenshots('reference');
     
     console.log("Reference Image generated");
   } catch (err) {

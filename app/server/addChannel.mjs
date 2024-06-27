@@ -1,16 +1,18 @@
 // import axios from "axios";
 
-const addSocialMediaChannel = async (channelName,divSelector,data) => {
+const addSocialMediaChannel = async (channelName,divSelector,data,code) => {
     const apiUrl = 'http://localhost:4001/add';
     
     try {
-        console.log(data);
+        // console.log(channelName);
+        // console.log(divSelector);
+        // console.log(data);
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ channelName,divSelector, data })
+            body: JSON.stringify({ channelName,divSelector, data ,code})
         });
 
         if (!response.ok) {

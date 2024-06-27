@@ -23,6 +23,7 @@ const captureScreenshots = async (directory) => {
     // Fetch all unique channel names
     connectToDatabase();
     const channels = await SocialMedia.distinct('channelName');
+
     if(directory==='reference') await ScreenshotReference.deleteMany({});
     else await ScreenshotTest.deleteMany({});
 
@@ -36,8 +37,8 @@ const captureScreenshots = async (directory) => {
         const { divSelector, data } = channelData;
 
         // Clear existing file content
-        const baseFilename = `public/screenshots/${directory}/${channel}.json`;
-        fs.writeFileSync(baseFilename, JSON.stringify([], null, 2));
+        // const baseFilename = `public/screenshots/${directory}/${channel}.json`;
+        // fs.writeFileSync(baseFilename, JSON.stringify([], null, 2));
         await apiCall(data, channel, divSelector, directory);
     }
 };

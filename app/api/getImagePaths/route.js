@@ -7,7 +7,6 @@ export async function GET() {
     await connectToDatabase();
 
     const results = await Result.find({});
-    // console.log(results);
     // Initialize an empty object to store formatted results
     const formattedResults = {};
 
@@ -23,7 +22,7 @@ export async function GET() {
           }));
   
           // Only add platforms with images
-          if (images.length > 0) {
+          // if (images.length > 0) {
             formattedResults[platformName] = {};
   
             images.forEach((image) => {
@@ -33,7 +32,7 @@ export async function GET() {
                 image.diffUrl
               ];
             });
-          }
+          // }
         });
       });
    

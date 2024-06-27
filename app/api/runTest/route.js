@@ -180,13 +180,7 @@ export const POST = async () => {
       console.log("Data saved successfully to MongoDB");
     } catch (error) {
       console.error("Error saving data to MongoDB:", error);
-      // Handle error appropriately, e.g., log, throw, or return an error response
     }
-    
-
-    const jsonFilePath = path.join(outputDir, 'comparison_results.json');
-    fs.writeFileSync(jsonFilePath, JSON.stringify(comparisonResults, null, 2));
-    console.log(`Stored comparison results in JSON file: ${jsonFilePath}`);
 
     console.log("Image comparison and upload to Cloudinary complete");
 
