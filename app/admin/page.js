@@ -22,7 +22,7 @@ export default function Home() {
 
   const handleSocialMediaSubmit = async (formData) => {
     try {
-      const response = await fetch('/api/socialmedia', {
+      const response = await fetch('/api/socialmedia/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
