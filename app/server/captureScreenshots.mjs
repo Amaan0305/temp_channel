@@ -6,7 +6,7 @@ import connectToDatabase from '../lib/mongodb.mjs';
 const apiCall = async (channelData, channel, selector, directory)  => {
     // console.log(channelData);
     for (let urlIndex = 0; urlIndex < channelData.length; urlIndex++) {
-        const response = await fetch("http://localhost:4001/screenshot", {
+        const response = await fetch("api/screenshot", {
             method: "POST",
             headers: { "Content-Type" : "application/json"},
             body: JSON.stringify({

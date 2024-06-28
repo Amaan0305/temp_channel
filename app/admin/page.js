@@ -39,25 +39,25 @@ export default function Home() {
     }
   };
 
-  const handleEditSocialMedia = async (formData) => {
-    try {
-      console.log(formData);
-      const response = await fetch(`/api/socialmedia/update`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
-      if (response.ok) {
-        console.log('Social media data updated successfully');
-      } else {
-        console.error('Error updating social media data');
-      }
-    } catch (error) {
-      console.error('Error updating social media data:', error);
-    }
-  };
+  // const handleEditSocialMedia = async (formData) => {
+  //   try {
+  //     console.log(formData);
+  //     const response = await fetch(`/api/socialmedia/update`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: JSON.stringify(formData)
+  //     });
+  //     if (response.ok) {
+  //       console.log('Social media data updated successfully');
+  //     } else {
+  //       console.error('Error updating social media data');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error updating social media data:', error);
+  //   }
+  // };
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -72,7 +72,7 @@ export default function Home() {
       </Dropdown>
 
       <Dropdown title="Edit Channel Setup">
-        <EditChannelSetupComponent channelNames={channels} onSubmit={handleEditSocialMedia} />
+        <EditChannelSetupComponent channelNames={channels}  />
       </Dropdown>
     </div>
   );

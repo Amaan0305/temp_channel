@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export default function EditChannelSetupComponent({ channelNames, onSubmit }) {
+export default function EditChannelSetupComponent({ channelNames }) {
   const [selectedChannel, setSelectedChannel] = useState('');
   const [channelData, setChannelData] = useState({
     channelName: '',
@@ -18,7 +18,7 @@ export default function EditChannelSetupComponent({ channelNames, onSubmit }) {
         setLoading(true);
         setError('');
         try {
-          const response = await fetch(`http://localhost:4001/fetch-channel/${selectedChannel}`, {
+          const response = await fetch(`/api/socialmedia/fetch`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'

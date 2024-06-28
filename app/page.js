@@ -1,8 +1,6 @@
 "use client"
-// "./components/"
+
 import ImageGallery from "./components/ImageGallery";
-// import imagePaths from "../public/results/imagePaths.json";
-// import comparison_results from "../public/results/comparison_results.json"
 import { useEffect, useState } from "react";
 import Loader from "./components/loader";
 import Link from "next/link";
@@ -19,8 +17,7 @@ export default function Home() {
           headers: { "Content-Type" : "application/json"},
         });
         const data = await response.json();
-        // alert(data);
-        // console.log(data);
+        
         setImagePaths(data);
       } catch (error) {
         console.error("Failed to fetch image paths:", error);
@@ -29,6 +26,7 @@ export default function Home() {
 
     fetchImagePaths();
   }, []);
+  
   const runTest = async () => {
     try{
       setLoading(true)
