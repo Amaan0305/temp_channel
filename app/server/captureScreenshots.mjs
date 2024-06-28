@@ -4,7 +4,7 @@ import ScreenshotReference from '../lib/models/ScreenshotReference.mjs';
 import connectToDatabase from '../lib/mongodb.mjs';
 
 const apiCall = async (channelData, channel, selector, directory)  => {
-    console.log(channelData);
+    // console.log(channelData);
     for (let urlIndex = 0; urlIndex < channelData.length; urlIndex++) {
         const response = await fetch("http://localhost:4001/screenshot", {
             method: "POST",

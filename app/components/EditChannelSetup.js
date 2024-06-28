@@ -10,6 +10,7 @@ export default function EditChannelSetupComponent({ channelNames, onSubmit }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     const fetchChannelData = async () => {
@@ -17,7 +18,12 @@ export default function EditChannelSetupComponent({ channelNames, onSubmit }) {
         setLoading(true);
         setError('');
         try {
-          const response = await fetch(`/api/socialmedia/${selectedChannel}`);
+          const response = await fetch(`http://localhost:4001/fetch-channel/${selectedChannel}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
           if (response.ok) {
             const data = await response.json();
             setChannelData({
@@ -30,7 +36,7 @@ export default function EditChannelSetupComponent({ channelNames, onSubmit }) {
             setError('Failed to fetch channel data');
           }
         } catch (error) {
-          setError('Error fetching channel data:', error.message);
+          setError('Error fetching channel data: ' + error.message);
         } finally {
           setLoading(false);
         }
@@ -44,14 +50,50 @@ export default function EditChannelSetupComponent({ channelNames, onSubmit }) {
     setSelectedChannel(e.target.value);
   };
 
+  const handleLinkChange = (index, field, value) => {
+    const newData = [...channelData.data];
+    newData[index][field] = value;
+    setChannelData({ ...channelData, data: newData });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = {
       channelName: channelData.channelName,
       divSelector: channelData.divSelector,
-      loginByPass: channelData.loginByPass
+      loginByPass: channelData.loginByPass,
+      data: channelData.data
     };
-    onSubmit(formData);
+
+    try {
+      const response = await fetch(`/api/socialmedia/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        setMessage('Changes saved successfully');
+        // Reset form data
+        setSelectedChannel('');
+        setChannelData({
+          channelName: '',
+          divSelector: '',
+          loginByPass: '',
+          data: []
+        });
+        // Clear the message after 3 seconds
+        setTimeout(() => {
+          setMessage('');
+        }, 3000);
+      } else {
+        setError('Error updating channel data');
+      }
+    } catch (error) {
+      setError('Error updating channel data: ' + error.message);
+    }
   };
 
   return (
@@ -71,47 +113,68 @@ export default function EditChannelSetupComponent({ channelNames, onSubmit }) {
           ))}
         </select>
       </div>
-      {loading ? (
-        <div className="text-center text-blue-500">Loading...</div>
-      ) : (
+      {selectedChannel && (
         <>
-          {error && <div className="text-red-500 mb-4">{error}</div>}
-          <div className="mb-6">
-            <label htmlFor="editDivSelector" className="block text-sm font-medium text-gray-700">Div Selector</label>
-            <input
-              type="text"
-              id="editDivSelector"
-              value={channelData.divSelector}
-              onChange={(e) => setChannelData({ ...channelData, divSelector: e.target.value })}
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring focus:ring-blue-300"
-              required
-            />
-          </div>
-          <div className="mb-6">
-            <label htmlFor="editLoginByPass" className="block text-sm font-medium text-gray-700">Login ByPass</label>
-            <textarea
-              id="editLoginByPass"
-              value={channelData.loginByPass}
-              onChange={(e) => setChannelData({ ...channelData, loginByPass: e.target.value })}
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring focus:ring-blue-300 h-40 resize-none"
-            />
-          </div>
-          {channelData.data.length > 0 && (
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700">Links</label>
-              <ul className="list-disc pl-5 space-y-2">
-                {channelData.data.map((link, index) => (
-                  <li key={index}>
-                    <p className="text-sm text-gray-800"><strong>Scenario:</strong> {link.scenario}</p>
-                    <p className="text-sm text-gray-800"><strong>URL:</strong> {link.url}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          {loading ? (
+            <div className="text-center text-blue-500">Loading...</div>
+          ) : (
+            <>
+              {error && <div className="text-red-500 mb-4">{error}</div>}
+              {message && <div className="text-green-500 mb-4">{message}</div>}
+              <div className="mb-6">
+                <label htmlFor="editDivSelector" className="block text-sm font-medium text-gray-700">Div Selector</label>
+                <input
+                  type="text"
+                  id="editDivSelector"
+                  value={channelData.divSelector}
+                  onChange={(e) => setChannelData({ ...channelData, divSelector: e.target.value })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring focus:ring-blue-300"
+                  required
+                />
+              </div>
+              <div className="mb-6">
+                <label htmlFor="editLoginByPass" className="block text-sm font-medium text-gray-700">Login ByPass</label>
+                <textarea
+                  id="editLoginByPass"
+                  value={channelData.loginByPass}
+                  onChange={(e) => setChannelData({ ...channelData, loginByPass: e.target.value })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring focus:ring-blue-300 h-40 resize-none"
+                />
+              </div>
+              {channelData.data.length > 0 && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700">Links</label>
+                  <ul className="space-y-4">
+                    {channelData.data.map((link, index) => (
+                      <li key={index} className="flex flex-col space-y-2">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Scenario</label>
+                          <input
+                            type="text"
+                            value={link.scenario}
+                            onChange={(e) => handleLinkChange(index, 'scenario', e.target.value)}
+                            className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring focus:ring-blue-300"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">URL</label>
+                          <input
+                            type="text"
+                            value={link.url}
+                            onChange={(e) => handleLinkChange(index, 'url', e.target.value)}
+                            className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring focus:ring-blue-300"
+                          />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <button type="submit" className="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                Save Changes
+              </button>
+            </>
           )}
-          <button type="submit" className="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300">
-            Save Changes
-          </button>
         </>
       )}
     </form>

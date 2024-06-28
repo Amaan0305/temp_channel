@@ -57,7 +57,7 @@ export default function Home() {
           Run Test
         </button>
       )}
-      <Link href="./manage">
+      <Link href="./admin">
         <button
           className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 m-2 rounded"
         >

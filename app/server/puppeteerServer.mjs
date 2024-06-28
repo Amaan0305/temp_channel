@@ -8,6 +8,7 @@ import connectToDatabase from '../lib/mongodb.mjs';
 import SocialMedia from '../lib/models/channels.mjs';
 import ScreenshotReference from '../lib/models/ScreenshotReference.mjs';
 import ScreenshotTest from '../lib/models/ScreenshotTest.mjs';
+import cors from 'cors';
 
 // these are used for testing purpose(uploading channel data)
 import captureScreenshots from './captureScreenshots.mjs';
@@ -26,6 +27,14 @@ const viewports = [
 
 // Add stealth plugin and use it with puppeteer-extra
 puppeteer.use(StealthPlugin());
+// CORS options to allow only specific origin
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  optionsSuccessStatus: 200 // For legacy browser support
+};
+
+// Use CORS middleware with options
+app.use(cors(corsOptions));
 
 async function initializePuppeteer() {
   browser = await puppeteer.launch({ headless: true });
@@ -56,9 +65,6 @@ async function facebookLoginByPass(page) {
 app.post('/screenshot', async (req, res) => {
   const { link  , selector, name, directory, channel } = req.body;
 
-  console.log(link);
-  console.log(selector);
-
   if (!link || !selector) {
     return res.status(400).send('URL and selector are required');
   }
@@ -72,7 +78,7 @@ app.post('/screenshot', async (req, res) => {
     for (const viewport of viewports) {
       await page.setViewport(viewport);
 
-      if (channel === "facebook"||channel==="temp") {
+      if (channel === "facebook") {
         await facebookLoginByPass(page);
       }
       await page.waitForSelector(selector, { timeout: 60000 });
@@ -167,32 +173,10 @@ app.post('/add', async (req, res) => {
   }
 });
 
-// Endpoint to save user-provided code for a channel
-app.post('/save-code', async (req, res) => {
-  const { channelName, code } = req.body;
-
-  if (!channelName || !code) {
-    return res.status(400).json({ message: 'Channel name and code are required' });
-  }
-
-  try {
-    const channel = await SocialMedia.findOne({ channelName });
-
-    if (!channel) {
-      return res.status(404).json({ message: 'Channel not found' });
-    }
-
-    channel.code = code;
-    await channel.save();
-    res.status(200).json({ message: 'Code saved successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error saving code', error });
-  }
-});
-
 // Endpoint to fetch user-provided code for a channel
-app.get('/fetch-code/:channelName', async (req, res) => {
+app.post('/fetch-channel/:channelName', async (req, res) => {
   const { channelName } = req.params;
+  console.log(channelName);
 
   try {
     const channel = await SocialMedia.findOne({ channelName });
@@ -201,9 +185,9 @@ app.get('/fetch-code/:channelName', async (req, res) => {
       return res.status(404).json({ message: 'Channel not found' });
     }
 
-    res.status(200).json({ code: channel.code });
+    res.status(200).json(channel);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching code', error });
+    res.status(500).json({ message: 'Error fetching channel data', error });
   }
 });
 
@@ -234,8 +218,8 @@ const startServer = async () => {
     // }
 
     // await captureScreenshots('reference');
-    
-    console.log("Reference Image generated");
+    // console.log("Reference Image generated");s
+
   } catch (err) {
     console.error(err);
   }

@@ -41,8 +41,9 @@ export default function Home() {
 
   const handleEditSocialMedia = async (formData) => {
     try {
-      const response = await fetch(`/api/socialmedia/${formData.channelName}`, {
-        method: 'PUT',
+      console.log(formData);
+      const response = await fetch(`/api/socialmedia/update`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
@@ -73,10 +74,6 @@ export default function Home() {
       <Dropdown title="Edit Channel Setup">
         <EditChannelSetupComponent channelNames={channels} onSubmit={handleEditSocialMedia} />
       </Dropdown>
-      
-      <div className="mt-8 text-sm text-gray-600">
-        {/* Optional additional content or information */}
-      </div>
     </div>
   );
 }

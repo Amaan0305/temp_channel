@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import getImagePaths from '@/app/server/getImagePaths';
+// import getIm;
 import cloudinary from '@/app/lib/cloudinary.mjs';
 // export const POST = async ( req ) => {
 //     const { channel, name } = await req.json();

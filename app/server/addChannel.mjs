@@ -4,9 +4,6 @@ const addSocialMediaChannel = async (channelName,divSelector,data,code) => {
     const apiUrl = 'http://localhost:4001/add';
     
     try {
-        // console.log(channelName);
-        // console.log(divSelector);
-        // console.log(data);
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
