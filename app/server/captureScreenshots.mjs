@@ -1,10 +1,10 @@
-import fs from 'fs';
 import SocialMedia from '../lib/models/channels.mjs';
 import ScreenshotTest from '../lib/models/ScreenshotTest.mjs';
 import ScreenshotReference from '../lib/models/ScreenshotReference.mjs';
 import connectToDatabase from '../lib/mongodb.mjs';
 
 const apiCall = async (channelData, channel, selector, directory)  => {
+    console.log(channelData);
     for (let urlIndex = 0; urlIndex < channelData.length; urlIndex++) {
         const response = await fetch("http://localhost:4001/screenshot", {
             method: "POST",
@@ -23,7 +23,7 @@ const captureScreenshots = async (directory) => {
     // Fetch all unique channel names
     connectToDatabase();
     const channels = await SocialMedia.distinct('channelName');
-
+    console.log(channels);
     if(directory==='reference') await ScreenshotReference.deleteMany({});
     else await ScreenshotTest.deleteMany({});
 
@@ -36,9 +36,6 @@ const captureScreenshots = async (directory) => {
         }
         const { divSelector, data } = channelData;
 
-        // Clear existing file content
-        // const baseFilename = `public/screenshots/${directory}/${channel}.json`;
-        // fs.writeFileSync(baseFilename, JSON.stringify([], null, 2));
         await apiCall(data, channel, divSelector, directory);
     }
 };

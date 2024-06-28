@@ -1,19 +1,18 @@
 import express from 'express';
 import puppeteer from 'puppeteer-extra';
 import path from 'path';
-import captureScreenshots from './captureScreenshots.mjs';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import cloudinary from '../lib/cloudinary.mjs';
 import { PassThrough } from 'stream';
-import fs from 'fs';
 import connectToDatabase from '../lib/mongodb.mjs';
 import SocialMedia from '../lib/models/channels.mjs';
 import ScreenshotReference from '../lib/models/ScreenshotReference.mjs';
 import ScreenshotTest from '../lib/models/ScreenshotTest.mjs';
+
+// these are used for testing purpose(uploading channel data)
+import captureScreenshots from './captureScreenshots.mjs';
 import * as links from '../links/index.mjs';
 import addSocialMediaChannel from './addChannel.mjs';
-
-// import { data } from 'autoprefixer';
 
 const app = express();
 const port = 4001;
@@ -57,6 +56,9 @@ async function facebookLoginByPass(page) {
 app.post('/screenshot', async (req, res) => {
   const { link  , selector, name, directory, channel } = req.body;
 
+  console.log(link);
+  console.log(selector);
+
   if (!link || !selector) {
     return res.status(400).send('URL and selector are required');
   }
@@ -70,7 +72,7 @@ app.post('/screenshot', async (req, res) => {
     for (const viewport of viewports) {
       await page.setViewport(viewport);
 
-      if (channel === "facebook") {
+      if (channel === "facebook"||channel==="temp") {
         await facebookLoginByPass(page);
       }
       await page.waitForSelector(selector, { timeout: 60000 });
@@ -124,8 +126,6 @@ app.post('/screenshot', async (req, res) => {
         return res.status(404).send('Selector not found');
       }
     }
-
-    // saveUrls(screenshots, directory, channel);
 
     res.status(200).send({ message: "The screenshots have been generated", screenshots });
   } catch (error) {
@@ -216,22 +216,22 @@ const startServer = async () => {
       console.log(`Server is running on http://localhost:${port}`);
     });
 
-    const channels = ["instagram", "facebook", "twitter"];
-    let selector;
+    // const channels = ["instagram", "linkedin" ,"facebook", "twitter"];
+    // let selector;
 
-    for (let channel of channels) {
+    // for (let channel of channels) {
 
-        switch(channel) {
-            case "facebook": selector = "div[role=main]";
-            break;
+    //     switch(channel) {
+    //         case "facebook": selector = "div[role=main]";
+    //         break;
 
-            default: selector="article"
-        }
+    //         default: selector="article"
+    //     }
 
-        const data = links[`${channel}Url`];
-        let code = '';
-        await addSocialMediaChannel(channel,selector,data,code);
-    }
+    //     const data = links[`${channel}Url`];
+    //     let code = '';
+    //     await addSocialMediaChannel(channel,selector,data,code);
+    // }
 
     // await captureScreenshots('reference');
     

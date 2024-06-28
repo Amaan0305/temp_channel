@@ -137,7 +137,7 @@ export const POST = async () => {
     connectToDatabase();
     const channels = await SocialMedia.distinct('channelName');
 
-    // const newScreenshots = await captureScreenshots("new");
+    const newScreenshots = await captureScreenshots("new");
     console.log("Screenshots generated");
 
     const outputDir = path.join(process.cwd(), 'public', 'results');

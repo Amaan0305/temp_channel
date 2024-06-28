@@ -6,10 +6,12 @@ const FormComponent = ({ channels }) => {
   const [inputScenario, setInputScenario] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
     try {
@@ -35,6 +37,11 @@ const FormComponent = ({ channels }) => {
         }
         throw new Error(data.message);
       }
+
+      setSuccess('URL added successfully');
+      setInputUrl('');
+      setInputScenario('');
+      setOption1('');
 
       console.log('Response:', data);
       // Optionally, you can update your UI or state based on the response data
@@ -100,6 +107,7 @@ const FormComponent = ({ channels }) => {
       </div>
 
       {error && <p className="text-red-500">{error}</p>}
+      {success && <p className="text-green-500">{success}</p>}
 
       <div>
         <button

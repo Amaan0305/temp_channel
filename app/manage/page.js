@@ -1,6 +1,8 @@
 "use client";
+
 import FormComponent from "../components/FormComponent";
 import SocialMediaFormComponent from "../components/SocialMediaFormComponent";
+import EditChannelSetupComponent from "../components/EditChannelSetup";
 import Dropdown from "../components/Dropdown";
 import { getChannels } from "../utils/getchannel";
 import { useState, useEffect } from "react";
@@ -11,7 +13,7 @@ export default function Home() {
   useEffect(() => {
     const fetchChannels = async () => {
       const fetchedChannels = await getChannels();
-      console.log(fetchChannels);
+      console.log(fetchedChannels);
       setChannels(fetchedChannels);
     };
 
@@ -19,8 +21,6 @@ export default function Home() {
   }, []);
 
   const handleSocialMediaSubmit = async (formData) => {
-    // console.log(formData);
-    // console.log(!formData.data);
     try {
       const response = await fetch('/api/socialmedia', {
         method: 'POST',
@@ -39,6 +39,25 @@ export default function Home() {
     }
   };
 
+  const handleEditSocialMedia = async (formData) => {
+    try {
+      const response = await fetch(`/api/socialmedia/${formData.channelName}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+      if (response.ok) {
+        console.log('Social media data updated successfully');
+      } else {
+        console.error('Error updating social media data');
+      }
+    } catch (error) {
+      console.error('Error updating social media data:', error);
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-4">Channel Preview Testing</h1>
@@ -51,6 +70,10 @@ export default function Home() {
         <SocialMediaFormComponent onSubmit={handleSocialMediaSubmit} />
       </Dropdown>
 
+      <Dropdown title="Edit Channel Setup">
+        <EditChannelSetupComponent channelNames={channels} onSubmit={handleEditSocialMedia} />
+      </Dropdown>
+      
       <div className="mt-8 text-sm text-gray-600">
         {/* Optional additional content or information */}
       </div>

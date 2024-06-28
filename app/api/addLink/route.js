@@ -1,90 +1,90 @@
-// import { facebookUrl } from '@/app/links/facebook.mjs';
-import * as links from '../../links/index.mjs';
-import fs from 'fs';
-import path from 'path';
+import connectToDatabase from '@/app/lib/mongodb.mjs';
+import SocialMedia from '@/app/lib/models/channels.mjs';
 
-// "../../../public/screenshots/reference/"
-//takes baseline screenshot of new url added 
-const takeScreenshot = async (url,channel,filename) => {
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-    await page.goto(url);
-  
-    const screenshotDir = "../../../public/screenshots/reference";
-    if (!fs.existsSync(screenshotDir)) {
-      fs.mkdirSync(screenshotDir);
+
+const apiCall = async (channelUrls, channel, divSelector, directory)  => {
+    try{
+        const channelData = await SocialMedia.findOne({ channelName: channel });
+        // console.log(channelData.data.length);
+        const response = await fetch("http://localhost:4001/screenshot", {
+            method: "POST",
+            headers: { "Content-Type" : "application/json"},
+            body: JSON.stringify({
+                link : channelUrls,
+                selector : divSelector,
+                name: `url_${channelData.data.length}`,
+                directory,
+                channel
+            })
+        });
+        if (!response.ok) {
+            throw new Error('Failed to call screenshot API');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error in apiCall:', error);
+        throw error; // Re-throw the error to be handled by the caller
     }
-  
-    const screenshotPath = path.join(screenshotDir,`${channel}` ,filename);
-    await page.screenshot({ path: screenshotPath });
-    await browser.close();
-  
-    return screenshotPath;
 };
 
-const apiCall = async (channelUrls, channel, selector, directory)  => {
-    const response = await fetch("http://localhost:4001/screenshot", {
-        method: "POST",
-        headers: { "Content-Type" : "application/json"},
-        body: JSON.stringify({
-            url: channelUrls[channelUrls.length-1],
-            selector,
-            name: `url_${channelUrls.length-1}`,
-            directory,
-            channel
-        })
-    })
-}
-
-// API route that accepts a URL, channel, and type
-
+// API route that accepts a URL, channel, and scenario
 export const POST = async (req) => {
     try {
-        // console.log(facebookUrl);
-        const { url, channel, scenario } = await req.json();
-        if (!url || !channel || !scenario) {
-            throw new Error('URL, channel, and scenario are required');
-        }
-
-        const channelFilePath = `/Users/amaan.akhtar/Documents/frontend/channel-preview-testing/Channel-Preview-Testing/app/links/${channel}.mjs`;
-        const channelArray = links[`${channel}Url`];
-        
-        // Check if the URL already exists
-        const urlExists = channelArray.some(entry => entry.url === url);
-        if (urlExists) {
-            return new Response(JSON.stringify({ message: 'URL already exists' }), {
-                status: 400,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-        }
-        // Create the new object
-        const newObject = { url, scenario };
-
-        // Add the new object to the channel array
-        channelArray.push(newObject);
-        let selector;
-        switch(channel) {
-            case "facebook": selector = "div[role=article]";
-            break;
-
-            default: selector="article"
-        }
-        await apiCall(url,channel, selector,"reference");
-
-        const updatedContent = `export const ${channel}Url = ${JSON.stringify(channelArray, null, 2)};`;
-        // console.log(updatedContent);
-        fs.writeFileSync(channelFilePath, updatedContent, 'utf-8');
-        return new Response(JSON.stringify({ message: 'URL added successfully', newObject }), {
-            status: 200,
-            headers: {
-                'Content-Type': 'application/json',
-            },
+      const { url, channel, scenario } = await req.json();
+      if (!url || !channel || !scenario) {
+        throw new Error('URL, channel, and scenario are required');
+      }
+  
+      await connectToDatabase();
+  
+      // Find the social media channel in the database
+      const socialMediaChannel = await SocialMedia.findOne({ channelName: channel });
+      if (!socialMediaChannel) {
+        throw new Error(`Channel ${channel} not found`);
+      }
+  
+      // Check if the URL already exists
+      const urlExists = socialMediaChannel.data.some(entry => entry.url === url);
+      if (urlExists) {
+        return new Response(JSON.stringify({ message: 'URL already exists' }), {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
         });
-      
+      }
+  
+      // Ensure divSelector is present
+      const { divSelector } = socialMediaChannel;
+      if (!divSelector) {
+        throw new Error('divSelector not found for the selected channel');
+      }
+  
+      // Create the new object
+      const newObject = { url, scenario };
+  
+      // Call the external API with the appropriate parameters
+      await apiCall(newObject, channel, divSelector, "reference");
+  
+      // Add the new object to the channel array
+      socialMediaChannel.data.push(newObject);
+  
+      // Save the updated channel document
+      await socialMediaChannel.save();
+  
+      return new Response(JSON.stringify({ message: 'URL added successfully', newObject }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
     } catch (error) {
-        console.error('Error processing URL:', error);
-        throw new Error('Error processing URL');
+      console.error('Error processing URL:', error);
+      return new Response(JSON.stringify({ message: 'Error processing URL', error: error.message }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
     }
 };
